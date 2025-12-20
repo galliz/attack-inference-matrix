@@ -12,8 +12,8 @@
         <div class="technique-notice" v-if="$slots.notice !== undefined">
           <div class="notice-icon theme-dark">!</div>
         </div>
-        <div class="technique-score" v-if="'rank' in item">
-          <var>#{{ item.rank }}</var>
+        <div class="technique-score" v-if="'likelihood' in item">
+          <var>{{ item.likelihood.toFixed(1) }}%</var>
         </div>
       </div>
       <div class="technique-controls">

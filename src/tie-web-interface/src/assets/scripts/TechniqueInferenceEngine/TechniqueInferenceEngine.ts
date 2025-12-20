@@ -100,6 +100,18 @@ export class TechniqueInferenceEngine {
         // Enrich predictions
         let results: [string, PredictedTechnique][] = [];
         const enrichmentFile = await enrichmentFileRequest;
+        const buffer = await predictionsTensor.buffer();
+
+        // First pass: collect all scores to find max
+        let maxScore = 0;
+        for (const [id, index] of model.techniques) {
+            if (!ids.has(id)) {
+                const score = buffer.get(index);
+                maxScore = Math.max(maxScore, score);
+            }
+        }
+
+        // Second pass: create results with likelihood percentages
         for (const [id, index] of model.techniques) {
             // Exclude observed techniques from results
             if (ids.has(id)) {
@@ -119,8 +131,9 @@ export class TechniqueInferenceEngine {
                 }
             }
             // Apply enrichment to prediction
-            const score = (await predictionsTensor.buffer()).get(index);
-            results.push([id, { rank: 0, score, ...technique }]);
+            const score = buffer.get(index);
+            const likelihood = maxScore > 0 ? (score / maxScore) * 100 : 0;
+            results.push([id, { rank: 0, score, likelihood, ...technique }]);
         }
 
         // Free tensors from memory
