@@ -4,11 +4,7 @@
       <h3>ATT&CK Enterprise Matrix</h3>
     </div>
     <div class="matrix-container p-3">
-      <div class="scroll-indicator-group">
-        <div class="scroll-indicator left">
-          <div class="cover"></div>
-        </div>
-        <div class="overflow-x-auto matrix-scroll-box pb-3" ref="matrixScrollBox">
+      <div class="overflow-x-auto matrix-scroll-box pb-3" ref="matrixScrollBox">
           <table class="matrix side">
             <thead>
               <tr>
@@ -99,10 +95,6 @@
               </tr>
             </tbody>
           </table>
-        </div>
-        <div class="scroll-indicator right">
-          <div class="cover"></div>
-        </div>
       </div>
     </div>
   </div>
@@ -521,37 +513,4 @@ td.tactic {
 }
 
 // Scroll indicators
-.scroll-indicator-group {
-  position: relative;
-}
-
-.scroll-indicator {
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  width: 30px;
-  pointer-events: none;
-  z-index: 10;
-
-  &.left {
-    left: 0;
-
-    .cover {
-      background: linear-gradient(to right, var(--engenuity-navy, #0a1628), transparent);
-    }
-  }
-
-  &.right {
-    right: 0;
-
-    .cover {
-      background: linear-gradient(to left, var(--engenuity-navy, #0a1628), transparent);
-    }
-  }
-
-  .cover {
-    width: 100%;
-    height: 100%;
-  }
-}
 </style>
