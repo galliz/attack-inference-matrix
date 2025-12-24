@@ -1,0 +1,246 @@
+// Enterprise Matrix Styling
+// Based on MITRE ATT&CK Matrix layout
+
+.matrix-container {
+  padding: 1rem;
+  background: var(--matrix-bg, #1a1a2e);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.matrix-scroll-box {
+  overflow-x: auto;
+  padding-bottom: 1rem;
+}
+
+// Main table structure
+table.matrix {
+  border-collapse: separate;
+  border-spacing: 2px;
+  width: max-content;
+
+  &.side {
+    width: 100%;
+    min-width: max-content;
+  }
+}
+
+// Tactic headers (column headers)
+td.tactic {
+  vertical-align: top;
+  padding: 0;
+  min-width: 140px;
+
+  &.name {
+    background: var(--tactic-header-bg, #16213e);
+    padding: 8px 10px;
+    text-align: center;
+    font-weight: 600;
+    border-bottom: 3px solid var(--tactic-border, #0f3460);
+
+    a {
+      color: var(--tactic-text, #e94560);
+      text-decoration: none;
+      font-size: 0.85rem;
+
+      &:hover {
+        text-decoration: underline;
+      }
+    }
+  }
+
+  &.count {
+    background: var(--tactic-count-bg, #1a1a2e);
+    padding: 4px 8px;
+    text-align: center;
+    font-size: 0.75rem;
+    color: var(--tactic-count-text, #888);
+  }
+}
+
+// Techniques table within each tactic column
+.techniques-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+// Technique rows
+.technique-row {
+  display: table-row;
+
+  > td {
+    vertical-align: top;
+  }
+}
+
+// Supertechnique container
+table.supertechnique {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+// Technique cell styling
+td.technique {
+  padding: 0;
+}
+
+.technique-cell {
+  background: var(--technique-bg, #0f3460);
+  padding: 6px 8px;
+  margin: 1px 0;
+  border-left: 3px solid transparent;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: var(--technique-hover-bg, #1a4b7a);
+    border-left-color: var(--technique-hover-border, #e94560);
+  }
+
+  a {
+    color: var(--technique-text, #eee);
+    text-decoration: none;
+    font-size: 0.8rem;
+    display: block;
+
+    &:hover {
+      color: var(--technique-hover-text, #fff);
+    }
+
+    sub {
+      color: var(--technique-sub-text, #888);
+      font-size: 0.7rem;
+    }
+  }
+
+  // Highlighted technique (for inference results)
+  &.highlighted {
+    border-left-color: var(--highlight-border, #28a745);
+    background: var(--highlight-bg, rgba(40, 167, 69, 0.2));
+  }
+
+  // Different likelihood levels
+  &.likelihood-high {
+    background: var(--likelihood-high-bg, rgba(220, 53, 69, 0.3));
+    border-left-color: var(--likelihood-high-border, #dc3545);
+  }
+
+  &.likelihood-medium {
+    background: var(--likelihood-medium-bg, rgba(255, 193, 7, 0.3));
+    border-left-color: var(--likelihood-medium-border, #ffc107);
+  }
+
+  &.likelihood-low {
+    background: var(--likelihood-low-bg, rgba(40, 167, 69, 0.3));
+    border-left-color: var(--likelihood-low-border, #28a745);
+  }
+}
+
+// Supertechnique cell (techniques with sub-techniques)
+.supertechniquecell {
+  border-right: none;
+}
+
+// Sidebar toggle for sub-techniques
+.sidebar {
+  width: 20px;
+  background: var(--sidebar-bg, #0a2647);
+  cursor: pointer;
+  vertical-align: middle;
+  text-align: center;
+
+  &:hover {
+    background: var(--sidebar-hover-bg, #144272);
+  }
+
+  .handle {
+    color: var(--sidebar-handle-color, #666);
+    font-size: 0.8rem;
+    line-height: 1;
+  }
+
+  .angle {
+    svg {
+      fill: var(--sidebar-angle-fill, #0a2647);
+    }
+  }
+}
+
+// Sub-techniques container
+.subtechniques-td {
+  padding: 0;
+}
+
+.subtechniques-container {
+  background: var(--subtechniques-bg, #0a2647);
+  padding: 2px;
+
+  &.hidden {
+    display: none;
+  }
+}
+
+.subtechnique {
+  .technique-cell {
+    background: var(--subtechnique-bg, #144272);
+    margin: 1px 0;
+    padding-left: 12px;
+
+    &:hover {
+      background: var(--subtechnique-hover-bg, #1a5a8a);
+    }
+  }
+}
+
+// Scroll indicators
+.scroll-indicator-group {
+  position: relative;
+}
+
+.scroll-indicator {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 30px;
+  pointer-events: none;
+  z-index: 10;
+
+  &.left {
+    left: 0;
+
+    .cover {
+      background: linear-gradient(to right, var(--matrix-bg, #1a1a2e), transparent);
+    }
+  }
+
+  &.right {
+    right: 0;
+
+    .cover {
+      background: linear-gradient(to left, var(--matrix-bg, #1a1a2e), transparent);
+    }
+  }
+
+  .cover {
+    width: 100%;
+    height: 100%;
+  }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+  .matrix-container {
+    padding: 0.5rem;
+  }
+
+  td.tactic {
+    min-width: 120px;
+
+    &.name a {
+      font-size: 0.75rem;
+    }
+  }
+
+  .technique-cell a {
+    font-size: 0.7rem;
+  }
+}

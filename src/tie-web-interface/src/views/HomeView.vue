@@ -1,5 +1,13 @@
 <template>
   <div class="home-page">
+    <div class="matrix-section theme-dark">
+      <div class="matrix-section-contents">
+        <EnterpriseMatrix
+          :techniques="matrixTechniques"
+          :highlightedTechniques="highlightedTechniques"
+        />
+      </div>
+    </div>
     <div class="tool-set theme-dark">
       <div class="tool-set-contents" v-if="1 < tools.length">
         <div class="tool-tabs">
@@ -25,6 +33,15 @@ import { defineComponent } from "vue";
 // Components
 import { RouterLink } from "vue-router";
 import PredictTechniquesTool from "@/components/Elements/PredictTechniquesTool.vue";
+import EnterpriseMatrix from "@/components/Elements/EnterpriseMatrix.vue";
+// Store
+import { useInferenceEngineStore } from "@/stores/InferenceEngineStore";
+
+interface Technique {
+  id: string;
+  name: string;
+  tactics: string[];
+}
 
 export default defineComponent({
   name: "App",
@@ -35,15 +52,37 @@ export default defineComponent({
         component: "PredictTechniquesTool"
       }
     ],
-    activeTool: 0
+    activeTool: 0,
+    matrixTechniques: [] as Technique[],
+    highlightedTechniques: new Map<string, { likelihood: number }>()
   }),
   computed: {
 
   },
   methods: {
-
+    async loadTechniques() {
+      const store = useInferenceEngineStore();
+      try {
+        const enrichmentFile = await store.getEnrichmentFile;
+        // Convert enrichment file techniques object to array
+        const techniques: Technique[] = [];
+        for (const [id, technique] of Object.entries(enrichmentFile.techniques)) {
+          techniques.push({
+            id: (technique as any).id,
+            name: (technique as any).name,
+            tactics: (technique as any).tactics || []
+          });
+        }
+        this.matrixTechniques = techniques;
+      } catch (error) {
+        console.error("Failed to load techniques:", error);
+      }
+    }
   },
-  components: { RouterLink, PredictTechniquesTool }
+  async mounted() {
+    await this.loadTechniques();
+  },
+  components: { RouterLink, PredictTechniquesTool, EnterpriseMatrix }
 });
 </script>
 
@@ -94,5 +133,20 @@ export default defineComponent({
   padding: scale.size("xs") scale.size("m");
   user-select: none;
   cursor: pointer;
+}
+
+.matrix-section {
+  display: flex;
+  justify-content: center;
+  width: 100%;
+  background: var(--engenuity-navy, #0a1628);
+  padding: scale.size("m") 0;
+}
+
+.matrix-section-contents {
+  width: 100%;
+  max-width: 100%;
+  padding: 0em scale.size("h");
+  overflow: hidden;
 }
 </style>
