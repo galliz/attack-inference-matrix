@@ -1,23 +1,5 @@
 <template>
   <div class="home-page">
-    <div class="info-banner theme-light">
-      <div class="info-banner-contents">
-        <div class="abstract">
-          <h2 class="project-cta">
-            Gain a <mark>Full</mark> Picture of the Adversary
-          </h2>
-          <p class="project-description">
-            The Technique Inference Engine (TIE) suggests techniques an adversary is likely to have used based on a set
-            of observed techniques. Cyber defenders can use this data to prioritize specific techniques for threat
-            hunting, and incident responders can use this information to highlight important lateral movement and
-            persistence behaviors that are essential to threat eviction and recovery.
-          </p>
-          <RouterLink class="learn-more" to="/about">
-            Learn More
-          </RouterLink>
-        </div>
-      </div>
-    </div>
     <div class="tool-set theme-dark">
       <div class="tool-set-contents" v-if="1 < tools.length">
         <div class="tool-tabs">
@@ -72,32 +54,6 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-.info-banner {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
-.info-banner.theme-light {
-  background-color: var(--engenuity-core-color-9);
-}
-
-.info-banner-contents {
-  display: flex;
-  width: 100%;
-  min-width: 0;
-  max-width: scale.$max-width;
-  padding: scale.size("xxh") scale.size("xxh");
-}
-
-.project-cta {
-  margin-bottom: scale.size("s");
-}
-
-.project-description {
-  margin-bottom: scale.size("xh");
 }
 
 .tool-set,
