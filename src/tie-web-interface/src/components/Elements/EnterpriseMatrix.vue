@@ -384,9 +384,9 @@ export default defineComponent({
   width: 60px;
   height: 14px;
   border-radius: 2px;
-  background: linear-gradient(to right, 
-    rgba(198, 63, 31, 0.18) 0%, 
-    rgba(198, 63, 31, 0.35) 50%, 
+  background: linear-gradient(to right,
+    rgba(198, 63, 31, 0.18) 0%,
+    rgba(198, 63, 31, 0.35) 50%,
     rgba(198, 63, 31, 0.55) 100%
   );
   border: 1px solid rgba(198, 63, 31, 0.7);
