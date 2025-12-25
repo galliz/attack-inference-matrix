@@ -21,7 +21,11 @@
     </div>
     <div class="active-tool">
       <div class="active-tool-contents">
-        <component class="active-tool-component" :is="tools[activeTool].component" />
+        <component
+          class="active-tool-component"
+          :is="tools[activeTool].component"
+          @predictions-updated="onPredictionsUpdated"
+        />
       </div>
     </div>
   </div>
@@ -54,7 +58,7 @@ export default defineComponent({
     ],
     activeTool: 0,
     matrixTechniques: [] as Technique[],
-    highlightedTechniques: new Map<string, { likelihood: number }>()
+    highlightedTechniques: {} as Record<string, { likelihood: number }>
   }),
   computed: {
 
@@ -76,6 +80,63 @@ export default defineComponent({
         this.matrixTechniques = techniques;
       } catch (error) {
         console.error("Failed to load techniques:", error);
+      }
+    },
+    onPredictionsUpdated(predictions: Map<string, { likelihood: number, rank: number }> | null) {
+      if (predictions) {
+        // Only highlight the top 25 predictions by rank
+        const TOP_N = 25;
+        const highlighted: Record<string, { likelihood: number }> = {};
+
+        // Convert to array, sort by rank, and take top N
+        const sortedPredictions = [...predictions.entries()]
+          .sort((a, b) => a[1].rank - b[1].rank)
+          .slice(0, TOP_N);
+
+        // Track parent technique scores (aggregate from subtechniques)
+        const parentScores: Record<string, number> = {};
+
+        for (const [id, technique] of sortedPredictions) {
+          // Recalculate likelihood relative to the top predictions only
+          const topScore = sortedPredictions[0][1].likelihood;
+          const relativeScore = topScore > 0 ? (technique.likelihood / topScore) * 100 : 0;
+
+          // Check if this is a subtechnique (contains a dot, e.g., T1204.002)
+          if (id.includes('.')) {
+            const parentId = id.split('.')[0]; // T1204.002 -> T1204
+
+            // Store subtechnique score
+            highlighted[id] = { likelihood: relativeScore };
+
+            // Aggregate to parent: use the maximum subtechnique score
+            const existingParentScore = parentScores[parentId] || 0;
+            if (relativeScore > existingParentScore) {
+              parentScores[parentId] = relativeScore;
+            }
+          } else {
+            // Regular technique (not a subtechnique)
+            highlighted[id] = { likelihood: relativeScore };
+          }
+        }
+
+        // Add parent techniques with their aggregated scores
+        for (const parentId of Object.keys(parentScores)) {
+          const score = parentScores[parentId];
+          // Only set if not already set (direct prediction takes priority)
+          if (!highlighted[parentId]) {
+            highlighted[parentId] = { likelihood: score };
+          } else {
+            // If parent was directly predicted, use the higher of the two scores
+            if (score > highlighted[parentId].likelihood) {
+              highlighted[parentId] = { likelihood: score };
+            }
+          }
+        }
+
+        this.highlightedTechniques = highlighted;
+      } else {
+        // Clear highlights when no predictions
+        this.highlightedTechniques = {};
       }
     }
   },

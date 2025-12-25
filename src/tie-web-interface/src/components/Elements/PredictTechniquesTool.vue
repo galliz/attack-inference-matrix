@@ -79,6 +79,7 @@ import TechniquesViewController from "../Controls/TechniquesViewController.vue";
 
 export default defineComponent({
   name: "PredictTechniquesTool",
+  emits: ['predictions-updated'],
   data: () => ({
     engine: useInferenceEngineStore(),
     enrichmentFile: createEmptyEnrichmentFile(),
@@ -247,6 +248,7 @@ export default defineComponent({
         this.predicted = null;
       }
       this.view.setTechniques(this.predicted);
+      this.$emit('predictions-updated', this.predicted);
     },
 
     /**

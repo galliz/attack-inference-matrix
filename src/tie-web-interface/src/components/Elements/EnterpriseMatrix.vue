@@ -155,8 +155,8 @@ export default defineComponent({
       default: () => []
     },
     highlightedTechniques: {
-      type: Map as PropType<Map<string, { likelihood: number }>>,
-      default: () => new Map()
+      type: Object as PropType<Record<string, { likelihood: number }>>,
+      default: () => ({})
     }
   },
   emits: ["technique-click"],
@@ -244,7 +244,8 @@ export default defineComponent({
     },
 
     getTechniqueClasses(techniqueId: string): Record<string, boolean> {
-      const highlighted = this.highlightedTechniques.get(techniqueId);
+      // Use the prop directly (it's now a plain object, fully reactive)
+      const highlighted = this.highlightedTechniques[techniqueId];
 
       if (!highlighted) {
         return {};
@@ -252,8 +253,8 @@ export default defineComponent({
 
       const likelihood = highlighted.likelihood;
 
+      // Heat map: higher likelihood = more intense color
       return {
-        'highlighted': true,
         'likelihood-high': likelihood >= 70,
         'likelihood-medium': likelihood >= 40 && likelihood < 70,
         'likelihood-low': likelihood > 0 && likelihood < 40
@@ -415,37 +416,37 @@ td.tactic {
     }
   }
 
-  // Highlighted technique (for inference results)
-  &.highlighted {
-    border-left-color: var(--highlight-border, #28a745);
-    background: rgba(40, 167, 69, 0.15);
-  }
+  // Heat map coloring for predicted techniques
+  // Uses the engenuity accent color (red/orange) at varying intensities
+  // Higher likelihood = more intense/visible = "hotter"
 
-  // Different likelihood levels - color coded
   &.likelihood-high {
-    background: rgba(220, 53, 69, 0.25);
-    border-left-color: #dc3545;
+    // High likelihood: intense, fully saturated
+    background: rgba(198, 63, 31, 0.55);
+    border-left-color: #c63f1f;
 
     &:hover {
-      background: rgba(220, 53, 69, 0.35);
+      background: rgba(198, 63, 31, 0.7);
     }
   }
 
   &.likelihood-medium {
-    background: rgba(255, 193, 7, 0.25);
-    border-left-color: #ffc107;
+    // Medium likelihood: moderate intensity
+    background: rgba(198, 63, 31, 0.35);
+    border-left-color: rgba(198, 63, 31, 0.7);
 
     &:hover {
-      background: rgba(255, 193, 7, 0.35);
+      background: rgba(198, 63, 31, 0.45);
     }
   }
 
   &.likelihood-low {
-    background: rgba(40, 167, 69, 0.25);
-    border-left-color: #28a745;
+    // Low likelihood: faded, subtle
+    background: rgba(198, 63, 31, 0.18);
+    border-left-color: rgba(198, 63, 31, 0.4);
 
     &:hover {
-      background: rgba(40, 167, 69, 0.35);
+      background: rgba(198, 63, 31, 0.28);
     }
   }
 }
@@ -504,6 +505,34 @@ td.tactic {
     &:hover {
       background: var(--engenuity-navy-light, #1a3a5c);
       border-left-color: var(--engenuity-accent, #c63f1f);
+    }
+
+    // Heat map coloring for predicted subtechniques (must override default background)
+    &.likelihood-high {
+      background: rgba(198, 63, 31, 0.55);
+      border-left-color: #c63f1f;
+
+      &:hover {
+        background: rgba(198, 63, 31, 0.7);
+      }
+    }
+
+    &.likelihood-medium {
+      background: rgba(198, 63, 31, 0.35);
+      border-left-color: rgba(198, 63, 31, 0.7);
+
+      &:hover {
+        background: rgba(198, 63, 31, 0.45);
+      }
+    }
+
+    &.likelihood-low {
+      background: rgba(198, 63, 31, 0.18);
+      border-left-color: rgba(198, 63, 31, 0.4);
+
+      &:hover {
+        background: rgba(198, 63, 31, 0.28);
+      }
     }
 
     a {
