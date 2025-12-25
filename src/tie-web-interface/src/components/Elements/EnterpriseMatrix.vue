@@ -157,6 +157,10 @@ export default defineComponent({
     highlightedTechniques: {
       type: Object as PropType<Record<string, { likelihood: number }>>,
       default: () => ({})
+    },
+    selectedTechniques: {
+      type: Object as PropType<Record<string, boolean>>,
+      default: () => ({})
     }
   },
   emits: ["technique-click"],
@@ -295,21 +299,25 @@ export default defineComponent({
     },
 
     getTechniqueClasses(techniqueId: string): Record<string, boolean> {
-      // Use the prop directly (it's now a plain object, fully reactive)
       const highlighted = this.highlightedTechniques[techniqueId];
+      const isSelected = this.selectedTechniques[techniqueId];
 
-      if (!highlighted) {
-        return {};
+      const classes: Record<string, boolean> = {};
+
+      // Selected techniques (user-chosen) get a special highlight
+      if (isSelected) {
+        classes['selected'] = true;
       }
 
-      const likelihood = highlighted.likelihood;
+      // Predicted techniques get heat map coloring
+      if (highlighted) {
+        const likelihood = highlighted.likelihood;
+        classes['likelihood-high'] = likelihood >= 70;
+        classes['likelihood-medium'] = likelihood >= 40 && likelihood < 70;
+        classes['likelihood-low'] = likelihood > 0 && likelihood < 40;
+      }
 
-      // Heat map: higher likelihood = more intense color
-      return {
-        'likelihood-high': likelihood >= 70,
-        'likelihood-medium': likelihood >= 40 && likelihood < 70,
-        'likelihood-low': likelihood > 0 && likelihood < 40
-      };
+      return classes;
     }
   }
 });
@@ -500,6 +508,23 @@ td.tactic {
       background: rgba(198, 63, 31, 0.28);
     }
   }
+
+  // Selected techniques (user-chosen observed techniques)
+  // Bright cyan/blue color to stand out from predictions
+  &.selected {
+    background: rgba(0, 150, 209, 0.5);
+    border-left-color: #0096d1;
+    border-left-width: 3px;
+
+    &:hover {
+      background: rgba(0, 150, 209, 0.65);
+    }
+
+    a {
+      color: #fff;
+      font-weight: 600;
+    }
+  }
 }
 
 // Subtechnique toggle button
@@ -583,6 +608,22 @@ td.tactic {
 
       &:hover {
         background: rgba(198, 63, 31, 0.28);
+      }
+    }
+
+    // Selected subtechniques (user-chosen observed techniques)
+    &.selected {
+      background: rgba(0, 150, 209, 0.5);
+      border-left-color: #0096d1;
+      border-left-width: 3px;
+
+      &:hover {
+        background: rgba(0, 150, 209, 0.65);
+      }
+
+      a {
+        color: #fff;
+        font-weight: 600;
       }
     }
 

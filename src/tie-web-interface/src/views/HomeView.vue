@@ -5,6 +5,7 @@
         <EnterpriseMatrix
           :techniques="matrixTechniques"
           :highlightedTechniques="highlightedTechniques"
+          :selectedTechniques="selectedTechniques"
         />
       </div>
     </div>
@@ -25,6 +26,7 @@
           class="active-tool-component"
           :is="tools[activeTool].component"
           @predictions-updated="onPredictionsUpdated"
+          @observed-updated="onObservedUpdated"
         />
       </div>
     </div>
@@ -58,7 +60,8 @@ export default defineComponent({
     ],
     activeTool: 0,
     matrixTechniques: [] as Technique[],
-    highlightedTechniques: {} as Record<string, { likelihood: number }>
+    highlightedTechniques: {} as Record<string, { likelihood: number }>,
+    selectedTechniques: {} as Record<string, boolean>
   }),
   computed: {
 
@@ -138,6 +141,19 @@ export default defineComponent({
         // Clear highlights when no predictions
         this.highlightedTechniques = {};
       }
+    },
+    onObservedUpdated(observed: string[]) {
+      // Convert observed techniques array to a lookup object
+      const selected: Record<string, boolean> = {};
+      for (const id of observed) {
+        selected[id] = true;
+        // Also mark parent technique if this is a subtechnique
+        if (id.includes('.')) {
+          const parentId = id.split('.')[0];
+          selected[parentId] = true;
+        }
+      }
+      this.selectedTechniques = selected;
     }
   },
   async mounted() {
