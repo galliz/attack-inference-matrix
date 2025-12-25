@@ -222,6 +222,57 @@ export default defineComponent({
       }
 
       return map;
+    },
+
+    // Sort techniques with highlighted ones at the top, ordered by likelihood
+    sortedTechniquesByTactic(): Map<string, TechniqueWithSubs[]> {
+      const baseMap = this.groupedTechniquesByTactic;
+      const sortedMap = new Map<string, TechniqueWithSubs[]>();
+
+      for (const [tacticId, techniques] of baseMap) {
+        const sorted = [...techniques].sort((a, b) => {
+          const aHighlight = this.highlightedTechniques[a.id];
+          const bHighlight = this.highlightedTechniques[b.id];
+
+          // Both highlighted: sort by likelihood (highest first)
+          if (aHighlight && bHighlight) {
+            return bHighlight.likelihood - aHighlight.likelihood;
+          }
+          // Only a is highlighted: a comes first
+          if (aHighlight && !bHighlight) {
+            return -1;
+          }
+          // Only b is highlighted: b comes first
+          if (!aHighlight && bHighlight) {
+            return 1;
+          }
+          // Neither highlighted: sort alphabetically
+          return a.name.localeCompare(b.name);
+        });
+
+        // Also sort subtechniques within each technique
+        for (const tech of sorted) {
+          tech.subtechniques = [...tech.subtechniques].sort((a, b) => {
+            const aHighlight = this.highlightedTechniques[a.id];
+            const bHighlight = this.highlightedTechniques[b.id];
+
+            if (aHighlight && bHighlight) {
+              return bHighlight.likelihood - aHighlight.likelihood;
+            }
+            if (aHighlight && !bHighlight) {
+              return -1;
+            }
+            if (!aHighlight && bHighlight) {
+              return 1;
+            }
+            return a.name.localeCompare(b.name);
+          });
+        }
+
+        sortedMap.set(tacticId, sorted);
+      }
+
+      return sortedMap;
     }
   },
   methods: {
@@ -230,7 +281,7 @@ export default defineComponent({
     },
 
     getParentTechniquesForTactic(tacticId: string): TechniqueWithSubs[] {
-      return this.groupedTechniquesByTactic.get(tacticId) || [];
+      return this.sortedTechniquesByTactic.get(tacticId) || [];
     },
 
     toggleSubtechniques(techniqueId: string): void {
