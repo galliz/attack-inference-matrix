@@ -6,27 +6,11 @@
           :techniques="matrixTechniques"
           :highlightedTechniques="highlightedTechniques"
           :selectedTechniques="selectedTechniques"
-        />
-      </div>
-    </div>
-    <div class="tool-set theme-dark">
-      <div class="tool-set-contents" v-if="1 < tools.length">
-        <div class="tool-tabs">
-          <template v-for="(tool, i) of tools" :key="tool.component">
-            <h6 :class="['tool-tab', { 'theme-light': activeTool === i }]" @click="activeTool = i">
-              {{ tool.name }}
-            </h6>
-          </template>
-        </div>
-      </div>
-    </div>
-    <div class="active-tool">
-      <div class="active-tool-contents">
-        <component
-          class="active-tool-component"
-          :is="tools[activeTool].component"
-          @predictions-updated="onPredictionsUpdated"
-          @observed-updated="onObservedUpdated"
+          :parentsWithSelectedChildren="parentsWithSelectedChildren"
+          :searchQuery="searchQuery"
+          @technique-toggle="onTechniqueToggle"
+          @search-change="onSearchChange"
+          @clear-selection="onClearSelection"
         />
       </div>
     </div>
@@ -38,7 +22,6 @@
 import { defineComponent } from "vue";
 // Components
 import { RouterLink } from "vue-router";
-import PredictTechniquesTool from "@/components/Elements/PredictTechniquesTool.vue";
 import EnterpriseMatrix from "@/components/Elements/EnterpriseMatrix.vue";
 // Store
 import { useInferenceEngineStore } from "@/stores/InferenceEngineStore";
@@ -52,25 +35,29 @@ interface Technique {
 export default defineComponent({
   name: "App",
   data: () => ({
-    tools: [
-      {
-        name: "Predict Techniques",
-        component: "PredictTechniquesTool"
-      }
-    ],
-    activeTool: 0,
+    store: useInferenceEngineStore(),
     matrixTechniques: [] as Technique[],
     highlightedTechniques: {} as Record<string, { likelihood: number }>,
-    selectedTechniques: {} as Record<string, boolean>
+    selectedTechniques: {} as Record<string, boolean>,
+    parentsWithSelectedChildren: {} as Record<string, boolean>,
+    observedTechniques: new Set<string>(),
+    trainedTechniques: new Set<string>(),
+    searchQuery: "",
+    isLoading: false,
+    predictionTime: ""
   }),
   computed: {
-
+    selectedCount(): number {
+      return Object.keys(this.selectedTechniques).length;
+    }
   },
   methods: {
     async loadTechniques() {
-      const store = useInferenceEngineStore();
       try {
-        const enrichmentFile = await store.getEnrichmentFile;
+        const enrichmentFile = await this.store.getEnrichmentFile;
+        const trained = await this.store.getTrainedTechniques;
+        this.trainedTechniques = trained;
+
         // Convert enrichment file techniques object to array
         const techniques: Technique[] = [];
         for (const [id, technique] of Object.entries(enrichmentFile.techniques)) {
@@ -85,81 +72,126 @@ export default defineComponent({
         console.error("Failed to load techniques:", error);
       }
     },
-    onPredictionsUpdated(predictions: Map<string, { likelihood: number, rank: number }> | null) {
-      if (predictions) {
-        // Only highlight the top 25 predictions by rank
+
+    onSearchChange(query: string) {
+      this.searchQuery = query;
+    },
+
+    async onTechniqueToggle(technique: { id: string }) {
+      const id = technique.id;
+
+      // Toggle selection
+      if (this.observedTechniques.has(id)) {
+        this.observedTechniques.delete(id);
+      } else {
+        this.observedTechniques.add(id);
+      }
+
+      // Clear search when a technique is selected
+      this.searchQuery = "";
+
+      // Update selectedTechniques object for reactivity
+      this.updateSelectedTechniques();
+
+      // Update predictions
+      await this.updatePredictions();
+    },
+
+    async onClearSelection() {
+      this.observedTechniques.clear();
+      this.selectedTechniques = {};
+      this.parentsWithSelectedChildren = {};
+      this.highlightedTechniques = {};
+      this.predictionTime = "";
+    },
+
+    updateSelectedTechniques() {
+      const selected: Record<string, boolean> = {};
+      const parentsWithChildren: Record<string, boolean> = {};
+
+      for (const id of this.observedTechniques) {
+        selected[id] = true;
+        // Track parent technique separately for cosmetic dropdown highlighting
+        if (id.includes('.')) {
+          const parentId = id.split('.')[0];
+          parentsWithChildren[parentId] = true;
+        }
+      }
+
+      this.selectedTechniques = selected;
+      this.parentsWithSelectedChildren = parentsWithChildren;
+    },
+
+    async updatePredictions() {
+      if (this.observedTechniques.size === 0) {
+        this.highlightedTechniques = {};
+        this.predictionTime = "";
+        return;
+      }
+
+      this.isLoading = true;
+
+      try {
+        // Filter to only trained techniques
+        const trainedObserved = new Set(
+          [...this.observedTechniques].filter(t => this.trainedTechniques.has(t))
+        );
+
+        if (trainedObserved.size === 0) {
+          this.highlightedTechniques = {};
+          this.isLoading = false;
+          return;
+        }
+
+        const predictions = await this.store.predictNewReport(trainedObserved);
+        this.predictionTime = predictions.metadata.humanReadableTime;
+
+        // Process predictions
         const TOP_N = 25;
         const highlighted: Record<string, { likelihood: number }> = {};
-
-        // Convert to array, sort by rank, and take top N
         const sortedPredictions = [...predictions.entries()]
           .sort((a, b) => a[1].rank - b[1].rank)
           .slice(0, TOP_N);
 
-        // Track parent technique scores (aggregate from subtechniques)
         const parentScores: Record<string, number> = {};
 
         for (const [id, technique] of sortedPredictions) {
-          // Recalculate likelihood relative to the top predictions only
           const topScore = sortedPredictions[0][1].likelihood;
           const relativeScore = topScore > 0 ? (technique.likelihood / topScore) * 100 : 0;
 
-          // Check if this is a subtechnique (contains a dot, e.g., T1204.002)
           if (id.includes('.')) {
-            const parentId = id.split('.')[0]; // T1204.002 -> T1204
-
-            // Store subtechnique score
+            const parentId = id.split('.')[0];
             highlighted[id] = { likelihood: relativeScore };
-
-            // Aggregate to parent: use the maximum subtechnique score
             const existingParentScore = parentScores[parentId] || 0;
             if (relativeScore > existingParentScore) {
               parentScores[parentId] = relativeScore;
             }
           } else {
-            // Regular technique (not a subtechnique)
             highlighted[id] = { likelihood: relativeScore };
           }
         }
 
-        // Add parent techniques with their aggregated scores
         for (const parentId of Object.keys(parentScores)) {
           const score = parentScores[parentId];
-          // Only set if not already set (direct prediction takes priority)
           if (!highlighted[parentId]) {
             highlighted[parentId] = { likelihood: score };
-          } else {
-            // If parent was directly predicted, use the higher of the two scores
-            if (score > highlighted[parentId].likelihood) {
-              highlighted[parentId] = { likelihood: score };
-            }
+          } else if (score > highlighted[parentId].likelihood) {
+            highlighted[parentId] = { likelihood: score };
           }
         }
 
         this.highlightedTechniques = highlighted;
-      } else {
-        // Clear highlights when no predictions
-        this.highlightedTechniques = {};
+      } catch (error) {
+        console.error("Failed to update predictions:", error);
+      } finally {
+        this.isLoading = false;
       }
-    },
-    onObservedUpdated(observed: string[]) {
-      // Convert observed techniques array to a lookup object
-      const selected: Record<string, boolean> = {};
-      for (const id of observed) {
-        selected[id] = true;
-        // Also mark parent technique if this is a subtechnique
-        if (id.includes('.')) {
-          const parentId = id.split('.')[0];
-          selected[parentId] = true;
-        }
-      }
-      this.selectedTechniques = selected;
     }
   },
   async mounted() {
     await this.loadTechniques();
   },
-  components: { RouterLink, PredictTechniquesTool, EnterpriseMatrix }
+  components: { RouterLink, EnterpriseMatrix }
 });
 </script>
 
@@ -170,46 +202,6 @@ export default defineComponent({
   display: flex;
   flex-direction: column;
   align-items: center;
-}
-
-.tool-set,
-.active-tool {
-  display: flex;
-  justify-content: center;
-  width: 100%;
-}
-
-.tool-set-contents,
-.active-tool-contents {
-  display: flex;
-  width: 100%;
-  max-width: scale.$max-width;
-}
-
-.tool-set-contents {
-  min-width: 0;
-  padding: 0em scale.size("h");
-}
-
-.active-tool-contents {
-  min-width: 0;
-  padding: 0em scale.size("h");
-}
-
-.tool-tabs,
-.active-tool-component {
-  display: flex;
-}
-
-.active-tool-component {
-  width: 100%;
-  flex-direction: column;
-}
-
-.tool-tab {
-  padding: scale.size("xs") scale.size("m");
-  user-select: none;
-  cursor: pointer;
 }
 
 .matrix-section {

@@ -1,15 +1,33 @@
 <template>
   <div class="enterprise-matrix-wrapper">
     <div class="matrix-header">
-      <h3>ATT&CK Enterprise Matrix</h3>
-      <div class="matrix-legend">
-        <div class="legend-item">
-          <span class="legend-box selected-box"></span>
-          <span class="legend-label">Selected</span>
+      <div class="header-left">
+        <h3>ATT&CK Enterprise Matrix</h3>
+        <div class="search-container">
+          <input
+            type="text"
+            class="search-input"
+            placeholder="Search techniques..."
+            :value="searchQuery"
+            @input="$emit('search-change', ($event.target as HTMLInputElement).value)"
+          />
+          <span v-if="searchQuery" class="search-count">{{ matchingTechniqueCount }} matches</span>
         </div>
-        <div class="legend-item">
-          <span class="legend-gradient"></span>
-          <span class="legend-label">Predicted Likelihood</span>
+      </div>
+      <div class="header-right">
+        <div class="selection-info" v-if="selectedCount > 0">
+          <span class="selection-count">{{ selectedCount }} selected</span>
+          <button class="clear-btn" @click="$emit('clear-selection')">Clear</button>
+        </div>
+        <div class="matrix-legend">
+          <div class="legend-item">
+            <span class="legend-box selected-box"></span>
+            <span class="legend-label">Selected</span>
+          </div>
+          <div class="legend-item">
+            <span class="legend-gradient"></span>
+            <span class="legend-label">Predicted Likelihood</span>
+          </div>
         </div>
       </div>
     </div>
@@ -40,29 +58,23 @@
                         :key="technique.id"
                       >
                         <!-- Parent technique row -->
-                        <tr class="technique-row">
+                        <tr class="technique-row" :class="{ 'search-hidden': !matchesSearch(technique) && searchQuery }">
                           <td>
                             <div class="technique-wrapper">
                               <div
                                 class="technique-cell"
-                                :class="[getTechniqueClasses(technique.id), { 'has-subtechniques': technique.subtechniques && technique.subtechniques.length > 0 }]"
+                                :class="[getTechniqueClasses(technique.id), { 'has-subtechniques': technique.subtechniques && technique.subtechniques.length > 0, 'search-match': matchesSearch(technique) && searchQuery }]"
                                 :data-technique-id="technique.id"
-                                @click="$emit('technique-click', technique)"
+                                @click="$emit('technique-toggle', technique)"
                               >
-                                <a
-                                  :href="'https://attack.mitre.org/techniques/' + technique.id"
-                                  target="_blank"
-                                  :title="technique.id"
-                                  @click.stop
-                                >
-                                  {{ technique.name }}
-                                </a>
+                                <span class="technique-name">{{ technique.name }}</span>
+                                <span class="technique-id">{{ technique.id }}</span>
                               </div>
                               <!-- Subtechnique toggle button -->
                               <div
                                 v-if="technique.subtechniques && technique.subtechniques.length > 0"
                                 class="subtechnique-toggle"
-                                :class="{ 'expanded': expandedTechniques.has(technique.id) }"
+                                :class="{ 'expanded': expandedTechniques.has(technique.id), 'has-selected-child': parentsWithSelectedChildren[technique.id], 'has-search-match-child': hasSubtechniqueSearchMatch(technique) }"
                                 @click="toggleSubtechniques(technique.id)"
                               >
                                 <span class="toggle-count">({{ technique.subtechniques.length }})</span>
@@ -82,18 +94,12 @@
                                 v-for="sub in technique.subtechniques"
                                 :key="sub.id"
                                 class="technique-cell subtechnique"
-                                :class="getTechniqueClasses(sub.id)"
+                                :class="[getTechniqueClasses(sub.id), { 'search-match': matchesSearchSub(sub) && searchQuery, 'search-hidden': !matchesSearchSub(sub) && searchQuery }]"
                                 :data-technique-id="sub.id"
-                                @click="$emit('technique-click', sub)"
+                                @click="$emit('technique-toggle', sub)"
                               >
-                                <a
-                                  :href="'https://attack.mitre.org/techniques/' + sub.id.replace('.', '/')"
-                                  target="_blank"
-                                  :title="sub.id"
-                                  @click.stop
-                                >
-                                  {{ sub.name }}
-                                </a>
+                                <span class="technique-name">{{ sub.name }}</span>
+                                <span class="technique-id">{{ sub.id }}</span>
                               </div>
                             </div>
                           </td>
@@ -171,9 +177,17 @@ export default defineComponent({
     selectedTechniques: {
       type: Object as PropType<Record<string, boolean>>,
       default: () => ({})
+    },
+    parentsWithSelectedChildren: {
+      type: Object as PropType<Record<string, boolean>>,
+      default: () => ({})
+    },
+    searchQuery: {
+      type: String,
+      default: ""
     }
   },
-  emits: ["technique-click"],
+  emits: ["technique-toggle", "search-change", "clear-selection"],
   data() {
     return {
       tactics: ENTERPRISE_TACTICS,
@@ -181,6 +195,25 @@ export default defineComponent({
     };
   },
   computed: {
+    selectedCount(): number {
+      return Object.keys(this.selectedTechniques).length;
+    },
+
+    matchingTechniqueCount(): number {
+      if (!this.searchQuery) return 0;
+      const query = this.searchQuery.toLowerCase();
+      let count = 0;
+      for (const technique of this.techniques) {
+        if (
+          technique.name.toLowerCase().includes(query) ||
+          technique.id.toLowerCase().includes(query)
+        ) {
+          count++;
+        }
+      }
+      return count;
+    },
+
     // Group techniques: parent techniques contain their subtechniques
     groupedTechniquesByTactic(): Map<string, TechniqueWithSubs[]> {
       const map = new Map<string, TechniqueWithSubs[]>();
@@ -298,6 +331,55 @@ export default defineComponent({
       return this.sortedTechniquesByTactic.get(tacticId) || [];
     },
 
+    matchesSearch(technique: Technique): boolean {
+      if (!this.searchQuery) return true;
+      const query = this.searchQuery.toLowerCase();
+      // Check if technique name or ID matches
+      if (
+        technique.name.toLowerCase().includes(query) ||
+        technique.id.toLowerCase().includes(query)
+      ) {
+        return true;
+      }
+      // Check if any subtechnique matches
+      const techWithSubs = technique as TechniqueWithSubs;
+      if (techWithSubs.subtechniques) {
+        for (const sub of techWithSubs.subtechniques) {
+          if (
+            sub.name.toLowerCase().includes(query) ||
+            sub.id.toLowerCase().includes(query)
+          ) {
+            return true;
+          }
+        }
+      }
+      return false;
+    },
+
+    matchesSearchSub(sub: Technique): boolean {
+      if (!this.searchQuery) return true;
+      const query = this.searchQuery.toLowerCase();
+      return (
+        sub.name.toLowerCase().includes(query) ||
+        sub.id.toLowerCase().includes(query)
+      );
+    },
+
+    hasSubtechniqueSearchMatch(technique: TechniqueWithSubs): boolean {
+      if (!this.searchQuery) return false;
+      const query = this.searchQuery.toLowerCase();
+      // Check if any subtechnique matches the search
+      for (const sub of technique.subtechniques) {
+        if (
+          sub.name.toLowerCase().includes(query) ||
+          sub.id.toLowerCase().includes(query)
+        ) {
+          return true;
+        }
+      }
+      return false;
+    },
+
     toggleSubtechniques(techniqueId: string): void {
       if (this.expandedTechniques.has(techniqueId)) {
         this.expandedTechniques.delete(techniqueId);
@@ -346,14 +428,91 @@ export default defineComponent({
   padding: scale.size("xs") scale.size("m");
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.75rem;
 
   h3 {
     margin: 0;
     color: var(--engenuity-white, #fff);
     font-size: 1rem;
+  }
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.header-right {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.search-container {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.search-input {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  border-radius: 4px;
+  padding: 0.35rem 0.75rem;
+  color: var(--engenuity-white, #fff);
+  font-size: 0.8rem;
+  width: 200px;
+  transition: all 0.2s ease;
+
+  &::placeholder {
+    color: rgba(255, 255, 255, 0.5);
+  }
+
+  &:focus {
+    outline: none;
+    border-color: var(--engenuity-accent, #c63f1f);
+    background: rgba(255, 255, 255, 0.15);
+  }
+}
+
+.search-count {
+  font-size: 0.7rem;
+  color: var(--engenuity-gray, #888);
+}
+
+.selection-info {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: rgba(0, 150, 209, 0.2);
+  padding: 0.3rem 0.6rem;
+  border-radius: 4px;
+  border: 1px solid rgba(0, 150, 209, 0.4);
+}
+
+.selection-count {
+  font-size: 0.75rem;
+  color: #0096d1;
+  font-weight: 600;
+}
+
+.clear-btn {
+  background: transparent;
+  border: 1px solid rgba(0, 150, 209, 0.6);
+  color: #0096d1;
+  padding: 0.15rem 0.5rem;
+  border-radius: 3px;
+  font-size: 0.65rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+
+  &:hover {
+    background: rgba(0, 150, 209, 0.2);
   }
 }
 
@@ -475,6 +634,10 @@ td.tactic {
 .technique-row {
   display: table-row;
 
+  &.search-hidden {
+    opacity: 0.3;
+  }
+
   > td {
     vertical-align: top;
     width: 100%;
@@ -500,6 +663,9 @@ td.tactic {
   flex: 1;
   min-width: 0;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 
   &.has-subtechniques {
     border-right: none;
@@ -508,6 +674,29 @@ td.tactic {
   &:hover {
     background: var(--engenuity-navy-light, #1a3a5c);
     border-left-color: var(--engenuity-accent, #c63f1f);
+  }
+
+  &.search-match {
+    box-shadow: inset 0 0 0 2px rgba(255, 193, 7, 0.6);
+  }
+
+  &.search-hidden {
+    opacity: 0.3;
+  }
+
+  .technique-name {
+    color: var(--engenuity-white, #eee);
+    font-size: 0.65rem;
+    line-height: 1.3;
+    display: block;
+    word-wrap: break-word;
+    overflow-wrap: break-word;
+    hyphens: auto;
+  }
+
+  .technique-id {
+    color: var(--engenuity-gray, #888);
+    font-size: 0.55rem;
   }
 
   a {
@@ -611,6 +800,49 @@ td.tactic {
 
   &.expanded .toggle-arrow {
     transform: rotate(180deg);
+  }
+
+  // Highlight dropdown when a child subtechnique is selected
+  &.has-selected-child {
+    background: rgba(0, 150, 209, 0.4);
+    border-left-color: #0096d1;
+
+    .toggle-count,
+    .toggle-arrow {
+      color: #0096d1;
+      font-weight: 600;
+    }
+
+    &:hover {
+      background: rgba(0, 150, 209, 0.5);
+    }
+  }
+
+  // Yellow indicator when a subtechnique matches the search
+  &.has-search-match-child {
+    background: rgba(255, 193, 7, 0.3);
+    border-left-color: #ffc107;
+
+    .toggle-count,
+    .toggle-arrow {
+      color: #ffc107;
+      font-weight: 600;
+    }
+
+    &:hover {
+      background: rgba(255, 193, 7, 0.4);
+    }
+  }
+
+  // Selected takes priority over search match
+  &.has-selected-child.has-search-match-child {
+    background: rgba(0, 150, 209, 0.4);
+    border-left-color: #0096d1;
+
+    .toggle-count,
+    .toggle-arrow {
+      color: #0096d1;
+    }
   }
 }
 
