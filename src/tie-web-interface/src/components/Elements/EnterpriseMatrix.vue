@@ -2,6 +2,16 @@
   <div class="enterprise-matrix-wrapper">
     <div class="matrix-header">
       <h3>ATT&CK Enterprise Matrix</h3>
+      <div class="matrix-legend">
+        <div class="legend-item">
+          <span class="legend-box selected-box"></span>
+          <span class="legend-label">Selected</span>
+        </div>
+        <div class="legend-item">
+          <span class="legend-gradient"></span>
+          <span class="legend-label">Predicted Likelihood</span>
+        </div>
+      </div>
     </div>
     <div class="matrix-container p-3">
       <div class="overflow-x-auto matrix-scroll-box pb-3" ref="matrixScrollBox">
@@ -334,12 +344,57 @@ export default defineComponent({
 
 .matrix-header {
   padding: scale.size("xs") scale.size("m");
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 
   h3 {
     margin: 0;
     color: var(--engenuity-white, #fff);
     font-size: 1rem;
   }
+}
+
+.matrix-legend {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legend-box {
+  width: 14px;
+  height: 14px;
+  border-radius: 2px;
+}
+
+.selected-box {
+  background: rgba(0, 150, 209, 0.6);
+  border: 1px solid #0096d1;
+}
+
+.legend-gradient {
+  width: 60px;
+  height: 14px;
+  border-radius: 2px;
+  background: linear-gradient(to right, 
+    rgba(198, 63, 31, 0.18) 0%, 
+    rgba(198, 63, 31, 0.35) 50%, 
+    rgba(198, 63, 31, 0.55) 100%
+  );
+  border: 1px solid rgba(198, 63, 31, 0.7);
+}
+
+.legend-label {
+  font-size: 0.7rem;
+  color: var(--engenuity-white, #ccc);
 }
 
 .matrix-container {
