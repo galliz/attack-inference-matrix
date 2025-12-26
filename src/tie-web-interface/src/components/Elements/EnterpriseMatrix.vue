@@ -74,7 +74,7 @@
                               <div
                                 v-if="technique.subtechniques && technique.subtechniques.length > 0"
                                 class="subtechnique-toggle"
-                                :class="{ 'expanded': expandedTechniques.has(technique.id), 'has-selected-child': parentsWithSelectedChildren[technique.id], 'has-search-match-child': hasSubtechniqueSearchMatch(technique) }"
+                                :class="[getDropdownClasses(technique.id), { 'has-search-match-child': hasSubtechniqueSearchMatch(technique) }]"
                                 @click="toggleSubtechniques(technique.id)"
                               >
                                 <span class="toggle-count">({{ technique.subtechniques.length }})</span>
@@ -182,6 +182,10 @@ export default defineComponent({
       type: Object as PropType<Record<string, boolean>>,
       default: () => ({})
     },
+    parentsWithPredictedChildren: {
+      type: Object as PropType<Record<string, { likelihood: number }>>,
+      default: () => ({})
+    },
     searchQuery: {
       type: String,
       default: ""
@@ -271,47 +275,56 @@ export default defineComponent({
       return map;
     },
 
-    // Sort techniques with highlighted ones at the top, ordered by likelihood
+    // Sort techniques: selected first, then by prediction score, then alphabetically
     sortedTechniquesByTactic(): Map<string, TechniqueWithSubs[]> {
       const baseMap = this.groupedTechniquesByTactic;
       const sortedMap = new Map<string, TechniqueWithSubs[]>();
 
       for (const [tacticId, techniques] of baseMap) {
         const sorted = [...techniques].sort((a, b) => {
-          const aHighlight = this.highlightedTechniques[a.id];
-          const bHighlight = this.highlightedTechniques[b.id];
+          const aSelected = this.selectedTechniques[a.id] || this.parentsWithSelectedChildren[a.id];
+          const bSelected = this.selectedTechniques[b.id] || this.parentsWithSelectedChildren[b.id];
 
-          // Both highlighted: sort by likelihood (highest first)
-          if (aHighlight && bHighlight) {
-            return bHighlight.likelihood - aHighlight.likelihood;
+          // Selected techniques come first
+          if (aSelected && !bSelected) return -1;
+          if (!aSelected && bSelected) return 1;
+
+          // Get scores: use direct prediction or aggregate from children
+          const aDirectScore = this.highlightedTechniques[a.id]?.likelihood || 0;
+          const aChildScore = this.parentsWithPredictedChildren[a.id]?.likelihood || 0;
+          const aScore = Math.max(aDirectScore, aChildScore);
+
+          const bDirectScore = this.highlightedTechniques[b.id]?.likelihood || 0;
+          const bChildScore = this.parentsWithPredictedChildren[b.id]?.likelihood || 0;
+          const bScore = Math.max(bDirectScore, bChildScore);
+
+          // Sort by score (highest first)
+          if (aScore !== bScore) {
+            return bScore - aScore;
           }
-          // Only a is highlighted: a comes first
-          if (aHighlight && !bHighlight) {
-            return -1;
-          }
-          // Only b is highlighted: b comes first
-          if (!aHighlight && bHighlight) {
-            return 1;
-          }
-          // Neither highlighted: sort alphabetically
+
+          // Neither has score: sort alphabetically
           return a.name.localeCompare(b.name);
         });
 
         // Also sort subtechniques within each technique
         for (const tech of sorted) {
           tech.subtechniques = [...tech.subtechniques].sort((a, b) => {
-            const aHighlight = this.highlightedTechniques[a.id];
-            const bHighlight = this.highlightedTechniques[b.id];
+            const aSelected = this.selectedTechniques[a.id];
+            const bSelected = this.selectedTechniques[b.id];
 
-            if (aHighlight && bHighlight) {
-              return bHighlight.likelihood - aHighlight.likelihood;
+            // Selected subtechniques come first
+            if (aSelected && !bSelected) return -1;
+            if (!aSelected && bSelected) return 1;
+
+            const aScore = this.highlightedTechniques[a.id]?.likelihood || 0;
+            const bScore = this.highlightedTechniques[b.id]?.likelihood || 0;
+
+            // Sort by score (highest first)
+            if (aScore !== bScore) {
+              return bScore - aScore;
             }
-            if (aHighlight && !bHighlight) {
-              return -1;
-            }
-            if (!aHighlight && bHighlight) {
-              return 1;
-            }
+
             return a.name.localeCompare(b.name);
           });
         }
@@ -410,6 +423,45 @@ export default defineComponent({
       }
 
       return classes;
+    },
+
+    getDropdownClasses(techniqueId: string): Record<string, boolean> {
+      const classes: Record<string, boolean> = {};
+
+      // Expanded state
+      classes['expanded'] = this.expandedTechniques.has(techniqueId);
+
+      // Has selected child subtechnique
+      if (this.parentsWithSelectedChildren[techniqueId]) {
+        classes['has-selected-child'] = true;
+      }
+
+      // Has predicted child subtechnique - use heat map colors
+      const predicted = this.parentsWithPredictedChildren[techniqueId];
+      if (predicted) {
+        const likelihood = predicted.likelihood;
+        classes['has-predicted-child-high'] = likelihood >= 70;
+        classes['has-predicted-child-medium'] = likelihood >= 40 && likelihood < 70;
+        classes['has-predicted-child-low'] = likelihood > 0 && likelihood < 40;
+      }
+
+      // Has search match in child subtechniques
+      // Note: We need the technique object here, so we'll handle this differently
+      // This will be set via template binding for now
+
+      return classes;
+    },
+
+    hasSubtechniqueSearchMatchById(techniqueId: string): boolean {
+      // Find the technique by ID and check for subtechnique search matches
+      for (const [, techniques] of this.sortedTechniquesByTactic) {
+        for (const tech of techniques) {
+          if (tech.id === techniqueId) {
+            return this.hasSubtechniqueSearchMatch(tech);
+          }
+        }
+      }
+      return false;
     }
   }
 });
@@ -836,6 +888,64 @@ td.tactic {
 
   // Selected takes priority over search match
   &.has-selected-child.has-search-match-child {
+    background: rgba(0, 150, 209, 0.4);
+    border-left-color: #0096d1;
+
+    .toggle-count,
+    .toggle-arrow {
+      color: #0096d1;
+    }
+  }
+
+  // Heat map coloring for predicted child subtechniques
+  &.has-predicted-child-high {
+    background: rgba(198, 63, 31, 0.55);
+    border-left-color: #c63f1f;
+
+    .toggle-count,
+    .toggle-arrow {
+      color: #fff;
+      font-weight: 600;
+    }
+
+    &:hover {
+      background: rgba(198, 63, 31, 0.7);
+    }
+  }
+
+  &.has-predicted-child-medium {
+    background: rgba(198, 63, 31, 0.35);
+    border-left-color: rgba(198, 63, 31, 0.7);
+
+    .toggle-count,
+    .toggle-arrow {
+      color: #eee;
+      font-weight: 600;
+    }
+
+    &:hover {
+      background: rgba(198, 63, 31, 0.45);
+    }
+  }
+
+  &.has-predicted-child-low {
+    background: rgba(198, 63, 31, 0.18);
+    border-left-color: rgba(198, 63, 31, 0.4);
+
+    .toggle-count,
+    .toggle-arrow {
+      color: #ccc;
+    }
+
+    &:hover {
+      background: rgba(198, 63, 31, 0.28);
+    }
+  }
+
+  // Selected takes priority over prediction
+  &.has-selected-child.has-predicted-child-high,
+  &.has-selected-child.has-predicted-child-medium,
+  &.has-selected-child.has-predicted-child-low {
     background: rgba(0, 150, 209, 0.4);
     border-left-color: #0096d1;
 

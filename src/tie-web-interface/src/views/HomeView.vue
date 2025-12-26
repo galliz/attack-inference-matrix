@@ -7,6 +7,7 @@
           :highlightedTechniques="highlightedTechniques"
           :selectedTechniques="selectedTechniques"
           :parentsWithSelectedChildren="parentsWithSelectedChildren"
+          :parentsWithPredictedChildren="parentsWithPredictedChildren"
           :searchQuery="searchQuery"
           @technique-toggle="onTechniqueToggle"
           @search-change="onSearchChange"
@@ -40,6 +41,7 @@ export default defineComponent({
     highlightedTechniques: {} as Record<string, { likelihood: number }>,
     selectedTechniques: {} as Record<string, boolean>,
     parentsWithSelectedChildren: {} as Record<string, boolean>,
+    parentsWithPredictedChildren: {} as Record<string, { likelihood: number }>,
     observedTechniques: new Set<string>(),
     trainedTechniques: new Set<string>(),
     searchQuery: "",
@@ -101,6 +103,7 @@ export default defineComponent({
       this.observedTechniques.clear();
       this.selectedTechniques = {};
       this.parentsWithSelectedChildren = {};
+      this.parentsWithPredictedChildren = {};
       this.highlightedTechniques = {};
       this.predictionTime = "";
     },
@@ -125,6 +128,7 @@ export default defineComponent({
     async updatePredictions() {
       if (this.observedTechniques.size === 0) {
         this.highlightedTechniques = {};
+        this.parentsWithPredictedChildren = {};
         this.predictionTime = "";
         return;
       }
@@ -139,6 +143,7 @@ export default defineComponent({
 
         if (trainedObserved.size === 0) {
           this.highlightedTechniques = {};
+          this.parentsWithPredictedChildren = {};
           this.isLoading = false;
           return;
         }
@@ -162,6 +167,7 @@ export default defineComponent({
           if (id.includes('.')) {
             const parentId = id.split('.')[0];
             highlighted[id] = { likelihood: relativeScore };
+            // Track parent scores separately for dropdown highlighting
             const existingParentScore = parentScores[parentId] || 0;
             if (relativeScore > existingParentScore) {
               parentScores[parentId] = relativeScore;
@@ -171,14 +177,12 @@ export default defineComponent({
           }
         }
 
-        for (const parentId of Object.keys(parentScores)) {
-          const score = parentScores[parentId];
-          if (!highlighted[parentId]) {
-            highlighted[parentId] = { likelihood: score };
-          } else if (score > highlighted[parentId].likelihood) {
-            highlighted[parentId] = { likelihood: score };
-          }
+        // Store parent scores separately for dropdown highlighting (not in highlightedTechniques)
+        const parentsWithPredicted: Record<string, { likelihood: number }> = {};
+        for (const [parentId, score] of Object.entries(parentScores)) {
+          parentsWithPredicted[parentId] = { likelihood: score };
         }
+        this.parentsWithPredictedChildren = parentsWithPredicted;
 
         this.highlightedTechniques = highlighted;
       } catch (error) {
