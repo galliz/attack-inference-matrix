@@ -66,6 +66,8 @@
                                 :class="[getTechniqueClasses(technique.id), { 'has-subtechniques': technique.subtechniques && technique.subtechniques.length > 0, 'search-match': matchesSearch(technique) && searchQuery }]"
                                 :data-technique-id="technique.id"
                                 @click="$emit('technique-toggle', technique)"
+                                @mouseenter="showTooltip($event, technique)"
+                                @mouseleave="hideTooltip"
                               >
                                 <span class="technique-name">{{ technique.name }}</span>
                                 <span class="technique-id">{{ technique.id }}</span>
@@ -97,6 +99,8 @@
                                 :class="[getTechniqueClasses(sub.id), { 'search-match': matchesSearchSub(sub) && searchQuery, 'search-hidden': !matchesSearchSub(sub) && searchQuery }]"
                                 :data-technique-id="sub.id"
                                 @click="$emit('technique-toggle', sub)"
+                                @mouseenter="showTooltip($event, sub)"
+                                @mouseleave="hideTooltip"
                               >
                                 <span class="technique-name">{{ sub.name }}</span>
                                 <span class="technique-id">{{ sub.id }}</span>
@@ -111,6 +115,26 @@
               </tr>
             </tbody>
           </table>
+      </div>
+    </div>
+
+    <!-- Technique Tooltip -->
+    <div
+      v-if="tooltip.visible"
+      class="technique-tooltip"
+      :style="{ top: tooltip.y + 'px', left: tooltip.x + 'px' }"
+      @mouseenter="cancelHideTooltip"
+      @mouseleave="hideTooltip"
+    >
+      <div class="tooltip-header">
+        <span class="tooltip-name">{{ tooltip.name }}</span>
+        <span class="tooltip-id">{{ tooltip.id }}</span>
+      </div>
+      <div class="tooltip-description">
+        <em>Description not yet available.</em>
+      </div>
+      <div class="tooltip-footer">
+        <a :href="tooltip.link" target="_blank" @click.stop>View on MITRE ATT&CK ↗</a>
       </div>
     </div>
   </div>
@@ -196,7 +220,17 @@ export default defineComponent({
     return {
       tactics: ENTERPRISE_TACTICS,
       expandedTechniques: new Set<string>(),
-      autoExpandedBySearch: new Set<string>() // Track which were auto-expanded by search
+      autoExpandedBySearch: new Set<string>(), // Track which were auto-expanded by search
+      tooltip: {
+        visible: false,
+        id: "",
+        name: "",
+        link: "",
+        x: 0,
+        y: 0
+      },
+      tooltipTimeout: null as ReturnType<typeof setTimeout> | null,
+      tooltipHideTimeout: null as ReturnType<typeof setTimeout> | null
     };
   },
   watch: {
@@ -533,6 +567,68 @@ export default defineComponent({
         }
       }
       return false;
+    },
+
+    showTooltip(event: MouseEvent, technique: { id: string; name: string }): void {
+      // Clear any existing timeout
+      if (this.tooltipTimeout) {
+        clearTimeout(this.tooltipTimeout);
+      }
+
+      // Delay before showing tooltip (extended hover)
+      this.tooltipTimeout = setTimeout(() => {
+        const target = event.target as HTMLElement;
+        const rect = target.getBoundingClientRect();
+        const scrollContainer = this.$refs.matrixScrollBox as HTMLElement;
+        const wrapperRect = (this.$el as HTMLElement).getBoundingClientRect();
+
+        // Build the ATT&CK link
+        const link = technique.id.includes('.')
+          ? `https://attack.mitre.org/techniques/${technique.id.replace('.', '/')}`
+          : `https://attack.mitre.org/techniques/${technique.id}`;
+
+        // Position tooltip to the right of the cell, or left if not enough space
+        let x = rect.right - wrapperRect.left + 8;
+        const tooltipWidth = 280;
+
+        // If tooltip would overflow right side, position to the left
+        if (x + tooltipWidth > wrapperRect.width) {
+          x = rect.left - wrapperRect.left - tooltipWidth - 8;
+        }
+
+        // Keep tooltip within bounds
+        if (x < 0) x = 8;
+
+        this.tooltip = {
+          visible: true,
+          id: technique.id,
+          name: technique.name,
+          link: link,
+          x: x,
+          y: rect.top - wrapperRect.top + scrollContainer.scrollTop
+        };
+      }, 500); // 500ms delay for extended hover
+    },
+
+    hideTooltip(): void {
+      // Clear the show timeout if still pending
+      if (this.tooltipTimeout) {
+        clearTimeout(this.tooltipTimeout);
+        this.tooltipTimeout = null;
+      }
+
+      // Use a small delay before hiding to allow moving to tooltip
+      this.tooltipHideTimeout = setTimeout(() => {
+        this.tooltip.visible = false;
+      }, 100); // 100ms grace period to move to tooltip
+    },
+
+    cancelHideTooltip(): void {
+      // Cancel the hide timeout when mouse enters tooltip
+      if (this.tooltipHideTimeout) {
+        clearTimeout(this.tooltipHideTimeout);
+        this.tooltipHideTimeout = null;
+      }
     }
   }
 });
@@ -1097,6 +1193,82 @@ td.tactic {
 
     a {
       font-size: 0.6rem;
+    }
+  }
+}
+
+// Technique Tooltip
+.technique-tooltip {
+  position: absolute;
+  z-index: 1000;
+  width: 280px;
+  background: var(--engenuity-dark-navy, #0d1f3c);
+  border: 1px solid rgba(255, 255, 255, 0.15);
+  border-radius: 6px;
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+  padding: 0;
+  pointer-events: auto;
+  animation: tooltipFadeIn 0.15s ease-out;
+
+  @keyframes tooltipFadeIn {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  .tooltip-header {
+    padding: 0.6rem 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .tooltip-name {
+    color: var(--engenuity-white, #fff);
+    font-size: 0.85rem;
+    font-weight: 600;
+    line-height: 1.3;
+  }
+
+  .tooltip-id {
+    color: var(--engenuity-accent, #c63f1f);
+    font-size: 0.7rem;
+    font-family: monospace;
+  }
+
+  .tooltip-description {
+    padding: 0.6rem 0.75rem;
+    color: var(--engenuity-gray, #888);
+    font-size: 0.75rem;
+    line-height: 1.4;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+
+    em {
+      font-style: italic;
+    }
+  }
+
+  .tooltip-footer {
+    padding: 0.5rem 0.75rem;
+
+    a {
+      color: #0096d1;
+      font-size: 0.7rem;
+      text-decoration: none;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.25rem;
+
+      &:hover {
+        text-decoration: underline;
+        color: #00b8ff;
+      }
     }
   }
 }
