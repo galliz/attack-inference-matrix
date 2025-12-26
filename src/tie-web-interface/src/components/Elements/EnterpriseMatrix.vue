@@ -195,8 +195,14 @@ export default defineComponent({
   data() {
     return {
       tactics: ENTERPRISE_TACTICS,
-      expandedTechniques: new Set<string>()
+      expandedTechniques: new Set<string>(),
+      autoExpandedBySearch: new Set<string>() // Track which were auto-expanded by search
     };
+  },
+  watch: {
+    searchQuery(newQuery: string, oldQuery: string) {
+      this.handleSearchAutoExpand(newQuery, oldQuery);
+    }
   },
   computed: {
     selectedCount(): number {
@@ -393,14 +399,79 @@ export default defineComponent({
       return false;
     },
 
+    handleSearchAutoExpand(newQuery: string, oldQuery: string): void {
+      const MAX_AUTO_EXPAND = 5; // Maximum number of dropdowns to auto-expand
+
+      // If search is cleared, collapse any auto-expanded dropdowns
+      if (!newQuery && oldQuery) {
+        for (const id of this.autoExpandedBySearch) {
+          this.expandedTechniques.delete(id);
+        }
+        this.autoExpandedBySearch = new Set();
+        this.expandedTechniques = new Set(this.expandedTechniques);
+        return;
+      }
+
+      // If no search query, do nothing
+      if (!newQuery) return;
+
+      // Find all parent techniques with matching subtechniques
+      const parentsToExpand: string[] = [];
+      const query = newQuery.toLowerCase();
+
+      for (const [, techniques] of this.groupedTechniquesByTactic) {
+        for (const tech of techniques) {
+          if (!tech.subtechniques || tech.subtechniques.length === 0) continue;
+
+          // Check if any subtechnique matches
+          const hasMatch = tech.subtechniques.some(
+            sub => sub.name.toLowerCase().includes(query) || sub.id.toLowerCase().includes(query)
+          );
+
+          if (hasMatch && !parentsToExpand.includes(tech.id)) {
+            parentsToExpand.push(tech.id);
+          }
+        }
+      }
+
+      // Only auto-expand if count is within limit
+      if (parentsToExpand.length > 0 && parentsToExpand.length <= MAX_AUTO_EXPAND) {
+        // Collapse previously auto-expanded that are no longer matching
+        for (const id of this.autoExpandedBySearch) {
+          if (!parentsToExpand.includes(id)) {
+            this.expandedTechniques.delete(id);
+          }
+        }
+
+        // Expand new matches
+        const newAutoExpanded = new Set<string>();
+        for (const id of parentsToExpand) {
+          this.expandedTechniques.add(id);
+          newAutoExpanded.add(id);
+        }
+        this.autoExpandedBySearch = newAutoExpanded;
+        this.expandedTechniques = new Set(this.expandedTechniques);
+      } else if (parentsToExpand.length > MAX_AUTO_EXPAND) {
+        // Too many matches - collapse auto-expanded ones
+        for (const id of this.autoExpandedBySearch) {
+          this.expandedTechniques.delete(id);
+        }
+        this.autoExpandedBySearch = new Set();
+        this.expandedTechniques = new Set(this.expandedTechniques);
+      }
+    },
+
     toggleSubtechniques(techniqueId: string): void {
       if (this.expandedTechniques.has(techniqueId)) {
         this.expandedTechniques.delete(techniqueId);
+        // Also remove from auto-expanded tracking
+        this.autoExpandedBySearch.delete(techniqueId);
       } else {
         this.expandedTechniques.add(techniqueId);
       }
       // Force reactivity update
       this.expandedTechniques = new Set(this.expandedTechniques);
+      this.autoExpandedBySearch = new Set(this.autoExpandedBySearch);
     },
 
     getTechniqueClasses(techniqueId: string): Record<string, boolean> {
