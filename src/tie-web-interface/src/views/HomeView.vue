@@ -205,15 +205,19 @@ export default defineComponent({
 .home-page {
   display: flex;
   flex-direction: column;
-  align-items: center;
+  align-items: stretch;
+  height: 100%;
+  min-height: 0;
 }
 
 .matrix-section {
   display: flex;
+  flex: 1 1 auto;
   justify-content: center;
   width: 100%;
   background: var(--engenuity-navy, #0a1628);
   padding: scale.size("m") 0;
+  min-height: 0;
 }
 
 .matrix-section-contents {
@@ -221,5 +225,9 @@ export default defineComponent({
   max-width: 100%;
   padding: 0em scale.size("h");
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 </style>

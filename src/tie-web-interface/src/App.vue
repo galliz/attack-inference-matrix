@@ -84,9 +84,17 @@ export default defineComponent({
 </script>
 
 <style lang="scss">
+html, body, #app {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
+
 #app {
   display: flex;
   flex-direction: column;
+  min-height: 100vh;
+  height: 100vh;
 }
 
 #page-header {
@@ -98,9 +106,17 @@ export default defineComponent({
   flex: 1;
   display: flex;
   flex-direction: column;
+  min-height: 0;
 }
 
 #page-router {
-  flex: 1;
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+#page-footer {
+  flex-shrink: 0;
 }
 </style>

@@ -641,6 +641,10 @@ export default defineComponent({
   width: 100%;
   max-width: 100%;
   overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  flex: 1 1 auto;
+  min-height: 0;
 }
 
 .matrix-header {
@@ -777,6 +781,10 @@ export default defineComponent({
 }
 
 .matrix-container {
+  flex: 1 1 auto;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
   padding: 0.5rem;
   background: var(--engenuity-navy, #0a1628);
   border-radius: 4px;
@@ -784,9 +792,10 @@ export default defineComponent({
 }
 
 .matrix-scroll-box {
+  flex: 1 1 auto;
+  min-height: 0;
   overflow-x: auto;
   overflow-y: auto;
-  max-height: 400px;
   padding-bottom: 0.5rem;
 }
 
