@@ -647,9 +647,10 @@ export default defineComponent({
   padding: scale.size("xs") scale.size("m");
   display: flex;
   justify-content: space-between;
-  align-items: flex-start;
+  align-items: center;
   flex-wrap: wrap;
   gap: 0.75rem;
+  min-height: 2.5rem;
 
   h3 {
     margin: 0;
