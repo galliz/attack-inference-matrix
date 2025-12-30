@@ -797,6 +797,27 @@ export default defineComponent({
   overflow-x: auto;
   overflow-y: auto;
   padding-bottom: 0.5rem;
+
+  /* Sleek custom scrollbars */
+  scrollbar-width: thin;
+  scrollbar-color: #22304a #0a1628;
+
+  &::-webkit-scrollbar {
+    height: 8px;
+    width: 8px;
+    background: #0a1628;
+    border-radius: 6px;
+  }
+
+  &::-webkit-scrollbar-thumb {
+    background: #22304a;
+    border-radius: 6px;
+    min-height: 20px;
+  }
+
+  &::-webkit-scrollbar-thumb:hover {
+    background: #2d4060;
+  }
 }
 
 // Main table structure
