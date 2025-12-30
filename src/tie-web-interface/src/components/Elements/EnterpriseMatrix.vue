@@ -607,7 +607,7 @@ export default defineComponent({
           x: x,
           y: rect.top - wrapperRect.top + scrollContainer.scrollTop
         };
-      }, 500); // 500ms delay for extended hover
+      }, 900); // 900ms delay for extended hover
     },
 
     hideTooltip(): void {
