@@ -57,7 +57,7 @@ export default defineComponent({
 .footer-row a {
   color: var(--engenuity-gray, #aaa);
   text-decoration: none;
-  
+
   &:hover {
     color: var(--engenuity-white, #fff);
     text-decoration: underline;

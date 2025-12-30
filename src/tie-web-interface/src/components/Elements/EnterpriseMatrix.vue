@@ -648,7 +648,7 @@ export default defineComponent({
 }
 
 .matrix-header {
-  padding: scale.size("xs") scale.size("m");
+  padding: 0 scale.size("m");
   display: flex;
   justify-content: space-between;
   align-items: center;
