@@ -1,59 +1,28 @@
+# ATT&CK Inference Matrix
+
 [![MITRE ATT&CK® v15](https://img.shields.io/badge/MITRE%20ATT%26CK®-v15-red)](https://attack.mitre.org/versions/v15/)
 
-# Technique Inference Engine
+A unified web application that integrates the [Technique Inference Engine (TIE)](https://center-for-threat-informed-defense.github.io/technique-inference-engine/) with the [MITRE ATT&CK Navigator](https://mitre-attack.github.io/attack-navigator/), allowing instant visualization of inferred techniques directly on the ATT&CK matrix.
 
-The Technique Inference Engine (TIE) allows cyber defenders to forecast an adversary's
-next steps by predicting associated [MITRE ATT&CK](<(https://attack.mitre.org/)>)
-techniques from previously observed techniques. TIE enables defenders to build a
-complete picture of an adversary and their actions. TIE also offers one of the largest
-publicly available datasets of its kind, linking CTI Reports to ATT&CK Techniques. The
-dataset includes 43,899 technique observations across 6,236 CTI Reports, achieving 96%
-coverage of ATT&CK Enterprise v15.0. This project is created and maintained by the
-[MITRE Center for Threat-Informed
-Defense](https://ctid.mitre.org/)
-in furtherance of our mission to advance the start of the art and the state of the
-practice in threat-informed defense globally. The project is funded by our research
-participants.
+## Features
 
-**Table Of Contents:**
+- **Interactive technique selection**: Select observed techniques directly on the ATT&CK Navigator matrix
+- **Real-time inference**: Visualize predicted techniques on the same matrix without exporting files
 
-- [Getting Started](#getting-started)
-- [Getting Involved](#getting-involved)
-- [Questions and Feedback](#questions-and-feedback)
-- [Notice](#notice)
+## How it works
 
-## Getting Started
+1. Select observed ATT&CK techniques on the matrix
+2. View predicted techniques highlighted directly on the matrix
 
-To get started, we suggest visiting the project website, reading about the project, and
-experimenting with the Engine. For machine learning engineers, you may want to try
-training your own models using the Python notebook and/or training data.
+## About the Technique Inference Engine
 
-| Resource                                                                                                                                    | Description                                                                  |
-| ------------------------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------- |
-| [Technique Inference Engine (Website)](https://center-for-threat-informed-defense.github.io/technique-inference-engine/)                    | Learn about the project and run TIE right in your browser.                   |
-| [Technique Inference Engine (Python Notebook)](https://center-for-threat-informed-defense.github.io/technique-inference-engine/#/resources) | Run TIE locally and modify the code or training data to build custom models. |
-| [Training Data](https://github.com/center-for-threat-informed-defense/technique-inference-engine/tree/main/data)                            | Access the CTI Data used to train TIE.                                       |
+TIE enables cyber defenders to forecast adversary next steps by predicting associated MITRE ATT&CK techniques from previously observed techniques. The engine is trained on 43,899 technique observations across 6,236 CTI Reports, achieving 96% coverage of ATT&CK Enterprise v15.0.
 
-## Getting Involved
+## Credits
 
-There are several ways that you can get involved with this project and help
-advance threat-informed defense:
-
-- **Visit the Technique Inference Engine website.** Use the website to learn how the Engine works and make your own predictions.
-- **Train your own Engine.** Train the Technique Inference Engine on your own CTI data using the official Python Notebook.
-- **Contribute your own CTI.** We are interested in further expanding the Engine's dataset. If you have your own CTI you'd like to share, we would welcome your contribution.
-
-## Questions and Feedback
-
-We welcome your feedback and contributions to help advance
-Technique Inference Engine. Please see the guidance for contributors if are you
-interested in [contributing or simply reporting issues.](/CONTRIBUTING.md)
-
-Please submit
-[issues](https://github.com/center-for-threat-informed-defense/technique-inference-engine/issues) for
-any technical questions/concerns or contact
-[ctid@mitre.org](mailto:ctid@mitre.org?subject=subject=Question%20about%20technique-inference-engine)
-directly for more general inquiries.
+This project builds upon:
+- [Technique Inference Engine](https://github.com/center-for-threat-informed-defense/technique-inference-engine) by MITRE Center for Threat-Informed Defense
+- [ATT&CK Navigator](https://github.com/mitre-attack/attack-navigator) by MITRE
 
 ## Notice
 
