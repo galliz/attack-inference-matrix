@@ -5,7 +5,7 @@
         <div class="page-logo-container">
           <HamburgerMenu :close="mobile" @click="openMobileMenu(!mobile)" />
           <RouterLink class="logo-text" to="/">
-            Technique Inference Engine
+            ATT&CK Inference Matrix
           </RouterLink>
         </div>
         <div class="page-links-container">
@@ -33,7 +33,7 @@
         </div>
       </div>
     </div>
-    <div class="navigation-buffer theme-dark"></div>
+    <!-- Removed navigation-buffer to eliminate white gap -->
   </div>
 </template>
 
@@ -136,11 +136,7 @@ $header-height: calc(($header-padding * 1.5) + ($_fs * $_lh / scale.$units));
   justify-content: space-between;
   text-wrap: nowrap;
   max-width: scale.$max-width;
-  padding: scale.size("xl") scale.size("xxl");
-}
-
-.navigation-buffer {
-  height: $header-height;
+  padding: scale.size("s") scale.size("l"); // reduced padding
 }
 
 /** === Navigation Logo === */
@@ -161,8 +157,10 @@ $header-height: calc(($header-padding * 1.5) + ($_fs * $_lh / scale.$units));
 }
 
 .logo-text {
-  @include scale.h3;
+  @include scale.h3; // restore original font
   text-decoration: none;
+  line-height: 1.2;
+  padding: 0.1em 0;
 }
 
 /** === Navigation Links === */

@@ -107,6 +107,7 @@ html, body, #app {
   display: flex;
   flex-direction: column;
   min-height: 0;
+  margin-top: 2.5rem; // offset for fixed header
 }
 
 #page-router {
