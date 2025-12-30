@@ -88,6 +88,7 @@ html, body, #app {
   height: 100%;
   margin: 0;
   padding: 0;
+  background: var(--engenuity-navy, #0a1628); // uniform dark blue background
 }
 
 #app {
