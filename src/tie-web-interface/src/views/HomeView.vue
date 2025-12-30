@@ -223,7 +223,7 @@ export default defineComponent({
 .matrix-section-contents {
   width: 100%;
   max-width: 100%;
-  padding: 0em scale.size("h");
+  padding: 0em scale.size("xs");
   overflow: hidden;
   display: flex;
   flex-direction: column;
